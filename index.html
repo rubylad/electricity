@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electricity Consumption Analysis Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Outlined" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --deloitte-green: #86BC25;
+            --deloitte-dark-green: #046A38;
+            --deloitte-black: #000000;
+            --deloitte-gray: #53565A;
+            --deloitte-light-gray: #A0A0A0;
+            --deloitte-bg-gray: #F5F5F5;
+            --deloitte-white: #FFFFFF;
+            --chart-blue: #0076A8;
+            --chart-orange: #FF6B35;
+            --chart-teal: #00A3A1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            font-weight: 300;
+            background: var(--deloitte-bg-gray);
+            color: var(--deloitte-gray);
+            overflow-x: hidden;
+        }
+
+        /* Fixed Header */
+        .dashboard-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background: var(--deloitte-black);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 50px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .deloitte-logo img {
+            height: 28px;
+        }
+
+        .dashboard-title-header {
+            color: white;
+            font-size: 20px;
+            font-weight: 400;
+        }
+
+        .dashboard-title-header .meter-id {
+            color: var(--deloitte-green);
+            font-weight: 600;
+        }
+
+        /* Main Container */
+        .dashboard-container {
+            margin-top: 70px;
+            padding: 40px 50px;
+            max-width: 1800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Page Title Section */
+        .page-title-section {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            border-left: 6px solid var(--deloitte-green);
+        }
+
+        .page-title {
+            font-size: 42px;
+            font-weight: 300;
+            color: var(--deloitte-black);
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .page-subtitle {
+            font-size: 18px;
+            color: var(--deloitte-gray);
+            font-weight: 400;
+        }
+
+        .page-subtitle .highlight {
+            color: var(--deloitte-green);
+            font-weight: 600;
+        }
+
+        /* KPI Cards Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--deloitte-green);
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .kpi-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(134, 188, 37, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px;
+        }
+
+        .kpi-icon .material-icons-outlined {
+            font-size: 28px;
+            color: var(--deloitte-green);
+        }
+
+        .kpi-label {
+            font-size: 13px;
+            color: var(--deloitte-light-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .kpi-value {
+            font-size: 36px;
+            font-weight: 600;
+            color: var(--deloitte-black);
+            margin-bottom: 5px;
+            line-height: 1;
+        }
+
+        .kpi-subtext {
+            font-size: 13px;
+            color: var(--deloitte-gray);
+            font-weight: 400;
+        }
+
+        /* Chart Cards */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 35px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.06);
+            min-width: 0;
+        }
+
+        .chart-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .chart-header {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--deloitte-bg-gray);
+        }
+
+        .chart-title {
+            font-size: 22px;
+            font-weight: 500;
+            color: var(--deloitte-black);
+            margin-bottom: 6px;
+        }
+
+        .chart-subtitle {
+            font-size: 14px;
+            color: var(--deloitte-gray);
+            font-weight: 400;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+            min-width: 0;
+        }
+
+        .chart-container.tall {
+            height: 450px;
+        }
+
+        /* Insights Section */
+        .insights-section {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.06);
+            margin-bottom: 30px;
+        }
+
+        .insights-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--deloitte-bg-gray);
+        }
+
+        .insights-icon {
+            width: 55px;
+            height: 55px;
+            background: rgba(134, 188, 37, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .insights-icon .material-icons-outlined {
+            font-size: 32px;
+            color: var(--deloitte-green);
+        }
+
+        .insights-title {
+            font-size: 28px;
+            font-weight: 500;
+            color: var(--deloitte-black);
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+        }
+
+        .insight-card {
+            background: linear-gradient(135deg, rgba(134, 188, 37, 0.05) 0%, rgba(134, 188, 37, 0.02) 100%);
+            border-left: 4px solid var(--deloitte-green);
+            border-radius: 8px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .insight-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .insight-card h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--deloitte-dark-green);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .insight-card h4 .material-icons-outlined {
+            font-size: 24px;
+            color: var(--deloitte-green);
+        }
+
+        .insight-card p {
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--deloitte-gray);
+        }
+
+        /* Footer */
+        .dashboard-footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--deloitte-light-gray);
+            font-size: 13px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1400px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                padding: 30px 30px;
+            }
+
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .insights-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                padding: 0 20px;
+                height: 60px;
+            }
+
+            .dashboard-title-header {
+                font-size: 16px;
+            }
+
+            .deloitte-logo img {
+                height: 22px;
+            }
+
+            .dashboard-container {
+                margin-top: 60px;
+                padding: 20px;
+            }
+
+            .kpi-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .page-title {
+                font-size: 32px;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .kpi-card, .chart-card, .insights-section {
+            animation: fadeInUp 0.6s ease-out both;
+        }
+
+        .kpi-card:nth-child(1) { animation-delay: 0.1s; }
+        .kpi-card:nth-child(2) { animation-delay: 0.2s; }
+        .kpi-card:nth-child(3) { animation-delay: 0.3s; }
+        .kpi-card:nth-child(4) { animation-delay: 0.4s; }
+    </style>
+</head>
+<body>
+    <!-- Fixed Header -->
+    <div class="dashboard-header">
+        <div class="deloitte-logo">
+            <img src="https://www.deloitte.com/content/dam/assets-shared/logos/svg/a-d/deloitte.svg" alt="Deloitte">
+        </div>
+        <div class="dashboard-title-header">
+            Electricity Consumption Analysis | <span class="meter-id">MPRN: 10306311162</span>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Container -->
+    <div class="dashboard-container">
+        
+        <!-- Page Title Section -->
+        <div class="page-title-section">
+            <h1 class="page-title">Electricity Consumption Dashboard</h1>
+            <p class="page-subtitle">
+                Comprehensive analysis of <span class="highlight">2-year consumption data</span> from April 3, 2024 to April 2, 2026 | 
+                30-minute interval readings
+            </p>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-icon">
+                    <span class="material-icons-outlined">bolt</span>
+                </div>
+                <div class="kpi-label">Total Consumption</div>
+                <div class="kpi-value">14,892</div>
+                <div class="kpi-subtext">units (2 years)</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon">
+                    <span class="material-icons-outlined">schedule</span>
+                </div>
+                <div class="kpi-label">Peak Hour</div>
+                <div class="kpi-value">18:30</div>
+                <div class="kpi-subtext">0.65 units average</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon">
+                    <span class="material-icons-outlined">today</span>
+                </div>
+                <div class="kpi-label">Avg Daily Consumption</div>
+                <div class="kpi-value">20.4</div>
+                <div class="kpi-subtext">units per day</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon">
+                    <span class="material-icons-outlined">trending_up</span>
+                </div>
+                <div class="kpi-label">Highest Day</div>
+                <div class="kpi-value">26.68</div>
+                <div class="kpi-subtext">28 Nov 2024</div>
+            </div>
+        </div>
+
+        <!-- Monthly Overview Combined Chart (Full Width) -->
+        <div class="chart-card full-width" style="margin-bottom: 30px;">
+            <div class="chart-header">
+                <h3 class="chart-title">Monthly Consumption Overview</h3>
+                <p class="chart-subtitle">Total monthly consumption and average daily usage across 2-year period</p>
+            </div>
+            <div class="chart-container tall">
+                <canvas id="monthlyOverviewChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="chart-grid">
+            <!-- Daily Pattern Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Daily Consumption Pattern</h3>
+                    <p class="chart-subtitle">Average consumption by 30-minute intervals throughout the day</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="dailyPatternChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Peak Hours Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Top 10 Peak Hours</h3>
+                    <p class="chart-subtitle">Highest average consumption periods</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="peakHoursChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top Consumption Days Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Top 10 Consumption Days</h3>
+                    <p class="chart-subtitle">Days with highest total electricity usage</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="topDaysChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Seasonal Trend Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Monthly Consumption Trend</h3>
+                    <p class="chart-subtitle">Seasonal patterns and consumption variations</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="seasonalChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Insights Section -->
+        <div class="insights-section">
+            <div class="insights-header">
+                <div class="insights-icon">
+                    <span class="material-icons-outlined">lightbulb</span>
+                </div>
+                <h2 class="insights-title">Key Insights & Findings</h2>
+            </div>
+
+            <div class="insights-grid">
+                <div class="insight-card">
+                    <h4>
+                        <span class="material-icons-outlined">nights_stay</span>
+                        Evening Peak Consumption
+                    </h4>
+                    <p>
+                        Peak consumption occurs during evening hours (18:30-22:00), with the highest average of 0.65 units at 18:30-19:00. 
+                        This represents a 220% increase from the daily low point, indicating significant evening activity.
+                    </p>
+                </div>
+
+                <div class="insight-card">
+                    <h4>
+                        <span class="material-icons-outlined">ac_unit</span>
+                        Winter Consumption Spike
+                    </h4>
+                    <p>
+                        The highest consumption days cluster in winter months (November-February), with 28 Nov 2024 reaching 26.68 units. 
+                        This suggests heating-related electricity usage during colder periods.
+                    </p>
+                </div>
+
+                <div class="insight-card">
+                    <h4>
+                        <span class="material-icons-outlined">bedtime</span>
+                        Low Overnight Usage
+                    </h4>
+                    <p>
+                        Consumption drops to minimal levels (below 0.20 units) during overnight hours (00:30-06:00), 
+                        representing baseline appliance usage and standby power consumption.
+                    </p>
+                </div>
+
+                <div class="insight-card">
+                    <h4>
+                        <span class="material-icons-outlined">wb_sunny</span>
+                        Consistent Daily Pattern
+                    </h4>
+                    <p>
+                        A predictable daily pattern emerges: gradual morning increase (06:00-10:30), stable daytime plateau (10:30-18:00), 
+                        sharp evening peak (18:30-22:00), then decline overnight. This consistency enables accurate forecasting.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="dashboard-footer">
+            <p>Deloitte Consulting | Electricity Consumption Analysis Dashboard | Data Period: April 3, 2024 - April 2, 2026</p>
+        </div>
+    </div>
+
+    <script>
+        // Chart.js Global Configuration
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = '#53565A';
+
+        // Color Palette
+        const colors = {
+            green: '#86BC25',
+            darkGreen: '#046A38',
+            blue: '#0076A8',
+            orange: '#FF6B35',
+            teal: '#00A3A1',
+            gray: '#53565A',
+            lightGray: '#A0A0A0'
+        };
+
+        // 1. Daily Pattern Chart
+        const dailyPatternCtx = document.getElementById('dailyPatternChart').getContext('2d');
+        const dailyPatternChart = new Chart(dailyPatternCtx, {
+            type: 'line',
+            data: {
+                labels: ['00:30', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '18:30', '19:00', '20:00', '21:00', '22:00', '23:00'],
+                datasets: [{
+                    label: 'Average Consumption (units)',
+                    data: [0.15, 0.12, 0.11, 0.16, 0.28, 0.32, 0.38, 0.42, 0.48, 0.52, 0.65, 0.64, 0.60, 0.59, 0.50, 0.35],
+                    borderColor: colors.green,
+                    backgroundColor: 'rgba(134, 188, 37, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: colors.green,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: { size: 14, weight: '600' },
+                        bodyFont: { size: 13 },
+                        callbacks: {
+                            label: function(context) {
+                                return 'Avg: ' + context.parsed.y.toFixed(2) + ' units';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Consumption (units)',
+                            font: { size: 13, weight: '500' }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Time of Day',
+                            font: { size: 13, weight: '500' }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // 2. Peak Hours Chart
+        const peakHoursCtx = document.getElementById('peakHoursChart').getContext('2d');
+        const peakHoursChart = new Chart(peakHoursCtx, {
+            type: 'bar',
+            data: {
+                labels: ['18:30-19:00', '19:00-19:30', '20:30-21:00', '21:00-21:30', '20:00-20:30', '19:30-20:00', '17:30-18:00', '18:00-18:30', '21:30-22:00', '17:00-17:30'],
+                datasets: [{
+                    label: 'Average Consumption',
+                    data: [0.65, 0.64, 0.60, 0.59, 0.60, 0.62, 0.52, 0.58, 0.55, 0.48],
+                    backgroundColor: [
+                        colors.orange,
+                        colors.orange,
+                        colors.green,
+                        colors.green,
+                        colors.green,
+                        colors.green,
+                        colors.blue,
+                        colors.blue,
+                        colors.blue,
+                        colors.blue
+                    ],
+                    borderRadius: 6,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return 'Avg: ' + context.parsed.x.toFixed(2) + ' units';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Average Consumption (units)',
+                            font: { size: 13, weight: '500' }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // 3. Top Consumption Days Chart
+        const topDaysCtx = document.getElementById('topDaysChart').getContext('2d');
+        const topDaysChart = new Chart(topDaysCtx, {
+            type: 'bar',
+            data: {
+                labels: ['28 Nov 2024', '07 Dec 2025', '09 Nov 2025', '15 Feb 2026', '24 Dec 2025', '13 Jan 2025', '22 Dec 2024', '06 Feb 2026', '18 Nov 2025', '29 Jan 2026'],
+                datasets: [{
+                    label: 'Daily Consumption',
+                    data: [26.68, 26.66, 26.31, 25.86, 25.75, 25.52, 25.48, 25.35, 25.28, 25.15],
+                    backgroundColor: colors.darkGreen,
+                    borderRadius: 6,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return 'Total: ' + context.parsed.x.toFixed(2) + ' units';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Total Consumption (units)',
+                            font: { size: 13, weight: '500' }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // 4. Seasonal/Monthly Trend Chart
+        const seasonalCtx = document.getElementById('seasonalChart').getContext('2d');
+        const seasonalChart = new Chart(seasonalCtx, {
+            type: 'line',
+            data: {
+                labels: ['Apr 24', 'May 24', 'Jun 24', 'Jul 24', 'Aug 24', 'Sep 24', 'Oct 24', 'Nov 24', 'Dec 24', 'Jan 25', 'Feb 25', 'Mar 25', 'Apr 25', 'May 25', 'Jun 25', 'Jul 25', 'Aug 25', 'Sep 25', 'Oct 25', 'Nov 25', 'Dec 25', 'Jan 26', 'Feb 26', 'Mar 26'],
+                datasets: [{
+                    label: 'Monthly Average (units/day)',
+                    data: [18.5, 16.2, 14.8, 13.5, 13.2, 15.8, 18.3, 23.5, 24.2, 22.8, 21.5, 19.2, 18.8, 16.5, 14.5, 13.8, 13.4, 16.2, 18.9, 23.8, 24.5, 23.2, 22.1, 19.8],
+                    borderColor: colors.blue,
+                    backgroundColor: 'rgba(0, 118, 168, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: colors.blue,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return 'Avg: ' + context.parsed.y.toFixed(1) + ' units/day';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Average Daily Consumption (units)',
+                            font: { size: 13, weight: '500' }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month',
+                            font: { size: 13, weight: '500' }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+        // 5. Monthly Overview Combined Chart (Bar + Line)
+        const monthlyOverviewCtx = document.getElementById('monthlyOverviewChart').getContext('2d');
+        const monthlyOverviewChart = new Chart(monthlyOverviewCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Apr 2024', 'May 2024', 'Jun 2024', 'Jul 2024', 'Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024', 'Jan 2025', 'Feb 2025', 'Mar 2025', 'Apr 2025', 'May 2025', 'Jun 2025', 'Jul 2025', 'Aug 2025', 'Sep 2025', 'Oct 2025', 'Nov 2025', 'Dec 2025', 'Jan 2026', 'Feb 2026', 'Mar 2026', 'Apr 2026'],
+                datasets: [
+                    {
+                        label: 'Total Monthly Consumption',
+                        data: [555, 502, 444, 418, 409, 474, 567, 705, 750, 707, 602, 595, 564, 511, 435, 428, 415, 486, 586, 714, 760, 719, 619, 614, 123],
+                        backgroundColor: 'rgba(134, 188, 37, 0.7)',
+                        borderColor: colors.green,
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        yAxisID: 'y',
+                        order: 2
+                    },
+                    {
+                        label: 'Average Daily Consumption',
+                        data: [18.5, 16.2, 14.8, 13.5, 13.2, 15.8, 18.3, 23.5, 24.2, 22.8, 21.5, 19.2, 18.8, 16.5, 14.5, 13.8, 13.4, 16.2, 18.9, 23.8, 24.5, 23.2, 22.1, 19.8, 20.5],
+                        type: 'line',
+                        borderColor: colors.orange,
+                        backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: colors.orange,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        yAxisID: 'y1',
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        align: 'end',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: {
+                                size: 13,
+                                weight: '500'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 15,
+                        titleFont: { size: 14, weight: '600' },
+                        bodyFont: { size: 13 },
+                        bodySpacing: 8,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    if (context.datasetIndex === 0) {
+                                        label += context.parsed.y.toFixed(0) + ' units';
+                                    } else {
+                                        label += context.parsed.y.toFixed(1) + ' units/day';
+                                    }
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Total Monthly Consumption (units)',
+                            font: { size: 13, weight: '500' },
+                            color: colors.green
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            color: colors.green
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Average Daily Consumption (units/day)',
+                            font: { size: 13, weight: '500' },
+                            color: colors.orange
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        ticks: {
+                            color: colors.orange
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month',
+                            font: { size: 13, weight: '500' }
+                        },
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
